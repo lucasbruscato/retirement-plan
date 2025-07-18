@@ -71,10 +71,10 @@ st.sidebar.header("📊 Simulation Parameters")
 # Investment parameters
 st.sidebar.subheader("💼 Investment Settings")
 initial_investment = st.sidebar.number_input(
-    "Initial Investment ($)", 
+    "Current Investment ($)", 
     min_value=10000, 
     max_value=10000000, 
-    value=2200000, 
+    value=4400000, 
     step=50000,
     format="%d"
 )
@@ -101,7 +101,7 @@ age = st.sidebar.number_input(
     "Current Age", 
     min_value=18, 
     max_value=90, 
-    value=50, 
+    value=45, 
     step=1
 )
 
@@ -180,13 +180,13 @@ if st.sidebar.button("🚀 Run Simulation", type="primary"):
         
         with col1:
             st.metric(
-                "Initial Investment", 
+                "Current Investment", 
                 f"${initial_investment:,.0f}"
             )
         
         with col2:
             st.metric(
-                "Annual Withdrawal", 
+                "Initial Annual Withdrawal", 
                 f"${withdrawal_value:,.0f}"
             )
         
@@ -207,7 +207,7 @@ if st.sidebar.button("🚀 Run Simulation", type="primary"):
         tab1, tab2, tab3, tab4 = st.tabs(["📊 Results Summary", "📈 Distributions", "🎯 Percentiles", "📉 Portfolio Paths"])
         
         with tab1:
-            st.subheader("Simulation Results Summary")
+            st.subheader(f"Simulation Results Summary - at the end of {num_years} years")
             
             col1, col2 = st.columns(2)
             
@@ -382,18 +382,6 @@ if st.sidebar.button("🚀 Run Simulation", type="primary"):
 
 else:
     st.info("👈 Configure your parameters in the sidebar and click 'Run Simulation' to see results!")
-    
-    # Show example scenario
-    st.subheader("📋 Example Scenario")
-    st.markdown(f"""
-    **Current Settings:**
-    - Initial Investment: ${initial_investment:,.0f}
-    - Expected Return: {returns_mean*100:.1f}% ± {returns_std*100:.1f}%
-    - Annual Withdrawal: ${withdrawal_value:,.0f} ({withdrawal_rate*100:.1f}% of portfolio)
-    - Simulation Period: {num_years} years (age {age} to {retirement_age})
-    - Expected Inflation: {inflation_mean*100:.1f}% ± {inflation_std*100:.1f}%
-    - Number of Simulations: {num_simulations:,}
-    """)
 
 # Footer
 st.markdown("---")
