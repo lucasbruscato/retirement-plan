@@ -5,49 +5,15 @@ import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import locale
+
+# Add the current directory to the path to import the monte_carlo_simulation function
 import sys
 import os
 
-# Add the current directory to the path to import the monte_carlo_simulation function
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 # Import the monte_carlo_simulation function from the separate file
-def monte_carlo_simulation(
-    initial_investment, 
-    returns_mean, 
-    returns_std, 
-    num_years, 
-    num_simulations, 
-    withdrawal_value, 
-    inflation_mean, 
-    inflation_std):
-
-    portfolio_values = np.zeros((num_years, num_simulations))
-    portfolio_values[0, :] = initial_investment
-
-    # Initialize withdrawals as a vector (per simulation)
-    withdrawals = np.full(num_simulations, withdrawal_value)
-    
-    # Track cumulative inflation factors for each simulation
-    cumulative_inflation_factors = np.ones(num_simulations)
-
-    for i in range(1, num_years):
-        annual_returns = np.random.normal(returns_mean, returns_std, num_simulations)
-
-        # Apply return growth and then withdrawal per simulation
-        portfolio_values[i, :] = portfolio_values[i - 1, :] * (1 + annual_returns) - withdrawals
-
-        # Prevent portfolio from going negative
-        portfolio_values[i, :] = np.maximum(portfolio_values[i, :], 0)
-
-        # Generate random withdrawal growth rates for each simulation
-        withdrawal_growth_rates = np.random.normal(inflation_mean, inflation_std, num_simulations)
-        withdrawals *= (1 + withdrawal_growth_rates)
-        
-        # Track cumulative inflation for each simulation
-        cumulative_inflation_factors *= (1 + withdrawal_growth_rates)
-
-    return portfolio_values, cumulative_inflation_factors
+from monte_carlo_simulation import monte_carlo_simulation
 
 # Set the locale for formatting
 try:
@@ -57,75 +23,150 @@ except locale.Error:
     locale.setlocale(locale.LC_ALL, '')
 
 st.set_page_config(
-    page_title="Retirement Monte Carlo Simulation",
+    page_title="Retirement Portfolio Simulation",
     page_icon="💰",
     layout="wide"
 )
 
-st.title("🏦 Retirement Portfolio Monte Carlo Simulation")
+st.title("🏦 Retirement Portfolio Simulation")
 st.markdown("Analyze your retirement portfolio's potential outcomes using Monte Carlo simulation")
 
 # Sidebar for input parameters
 st.sidebar.header("📊 Simulation Parameters")
 
 # Investment parameters
-st.sidebar.subheader("💼 Investment Settings")
-initial_investment = st.sidebar.number_input(
-    "Current Investment ($)", 
-    min_value=10000, 
-    max_value=10000000, 
-    value=4400000, 
-    step=50000,
-    format="%d"
+st.sidebar.subheader("⁉️ Input Definition")
+input_definition = st.sidebar.selectbox(
+    'Would you like to input the current investment OR the monthly withdrawal?',
+    ('Monthly Withdrawal', 'Current Investment')
 )
 
-returns_mean = st.sidebar.slider(
-    "Expected Annual Return (%)", 
-    min_value=0.0, 
-    max_value=15.0, 
-    value=6.0, 
-    step=0.1
-) / 100
 
-returns_std = st.sidebar.slider(
-    "Return Volatility (Standard Deviation %)", 
-    min_value=0.1, 
-    max_value=10.0, 
-    value=1.0, 
-    step=0.1
-) / 100
+# Dynamic input order based on input_definition
+if input_definition == "Current Investment":
+    st.sidebar.subheader("💼 Investment Settings")
+    initial_investment = st.sidebar.number_input(
+        "Current Investment ($)", 
+        min_value=10000, 
+        max_value=10000000, 
+        value=2200000, 
+        step=50000,
+        format="%d"
+    )
 
-# Time parameters
-st.sidebar.subheader("⏰ Time Settings")
-age = st.sidebar.number_input(
-    "Current Age", 
-    min_value=18, 
-    max_value=90, 
-    value=45, 
-    step=1
-)
+    returns_mean = st.sidebar.slider(
+        "Expected Annual Return (%)", 
+        min_value=0.0, 
+        max_value=20.0, 
+        value=6.0, 
+        step=0.1
+    ) / 100
 
-retirement_age = st.sidebar.number_input(
-    "Life Expectancy Age", 
-    min_value=age, 
-    max_value=150, 
-    value=100, 
-    step=1
-)
+    returns_std = st.sidebar.slider(
+        "Return Volatility (Standard Deviation %)", 
+        min_value=0.1, 
+        max_value=10.0, 
+        value=1.0, 
+        step=0.1
+    ) / 100
 
-num_years = retirement_age - age
+    # Time parameters
+    st.sidebar.subheader("⏰ Time Settings")
+    age = st.sidebar.number_input(
+        "Current Age", 
+        min_value=18, 
+        max_value=90, 
+        value=45, 
+        step=1
+    )
 
-# Withdrawal parameters
-st.sidebar.subheader("💸 Withdrawal Settings")
-withdrawal_rate = st.sidebar.slider(
-    "Initial Withdrawal Rate (%)", 
-    min_value=1.0, 
-    max_value=10.0, 
-    value=2.7, 
-    step=0.1
-) / 100
+    retirement_age = st.sidebar.number_input(
+        "Life Expectancy Age", 
+        min_value=age, 
+        max_value=150, 
+        value=100, 
+        step=1
+    )
 
-withdrawal_value = initial_investment * withdrawal_rate
+    num_years = retirement_age - age
+
+    # Withdrawal parameters
+    st.sidebar.subheader("💸 Withdrawal Settings")
+    withdrawal_rate = st.sidebar.slider(
+        "Initial Withdrawal Rate (%)", 
+        min_value=1.0, 
+        max_value=10.0, 
+        value=2.7, 
+        step=0.1
+    ) / 100
+
+    withdrawal_value = initial_investment * withdrawal_rate
+
+    # Show Monthly Withdrawal value as an informative text box (no decimals)
+    monthly_withdrawal = int(withdrawal_value // 12)
+    st.sidebar.info(f"Monthly Withdrawal: ${monthly_withdrawal:,}")
+
+elif input_definition == "Monthly Withdrawal":
+    st.sidebar.subheader("💸 Withdrawal Settings")
+    monthly_withdrawal = st.sidebar.number_input(
+        "Monthly Withdrawal ($)",
+        min_value=1000,
+        max_value=100000,
+        value=5000,
+        step=500,
+        format="%d"
+    )
+    withdrawal_value = monthly_withdrawal * 12
+
+    withdrawal_rate = st.sidebar.slider(
+        "Initial Withdrawal Rate (%)", 
+        min_value=1.0, 
+        max_value=10.0, 
+        value=2.7, 
+        step=0.1
+    ) / 100
+
+    # Show Current Investment as an informative text box (no decimals)
+    initial_investment = int(withdrawal_value / withdrawal_rate) if withdrawal_rate > 0 else 0
+    st.sidebar.info(f"Current Investment: ${initial_investment:,}")
+
+    # Investment settings
+    st.sidebar.subheader("💼 Investment Settings")
+    returns_mean = st.sidebar.slider(
+        "Expected Annual Return (%)", 
+        min_value=0.0, 
+        max_value=20.0, 
+        value=6.0, 
+        step=0.1
+    ) / 100
+
+    returns_std = st.sidebar.slider(
+        "Return Volatility (Standard Deviation %)", 
+        min_value=0.1, 
+        max_value=10.0, 
+        value=1.0, 
+        step=0.1
+    ) / 100
+
+    # Time parameters
+    st.sidebar.subheader("⏰ Time Settings")
+    age = st.sidebar.number_input(
+        "Current Age", 
+        min_value=18, 
+        max_value=90, 
+        value=45, 
+        step=1
+    )
+
+    retirement_age = st.sidebar.number_input(
+        "Life Expectancy Age", 
+        min_value=age, 
+        max_value=150, 
+        value=100, 
+        step=1
+    )
+
+    num_years = retirement_age - age
 
 # Inflation parameters
 st.sidebar.subheader("📈 Inflation Settings")
@@ -176,18 +217,24 @@ if st.sidebar.button("🚀 Run Simulation", type="primary"):
         final_portfolio_values_real = final_portfolio_values / cumulative_inflation_factors
         
         # Display key metrics
-        col1, col2, col3, col4 = st.columns(4)
+        col1, col2, col2_monthly, col3, col4 = st.columns(5)
         
         with col1:
             st.metric(
                 "Current Investment", 
                 f"${initial_investment:,.0f}"
             )
-        
+
         with col2:
             st.metric(
                 "Initial Annual Withdrawal", 
                 f"${withdrawal_value:,.0f}"
+            )
+
+        with col2_monthly:
+            st.metric(
+                "Initial Monthly Withdrawal", 
+                f"${(withdrawal_value/12):,.0f}"
             )
         
         with col3:
@@ -198,16 +245,25 @@ if st.sidebar.button("🚀 Run Simulation", type="primary"):
         
         with col4:
             success_rate = np.mean(final_portfolio_values > 0) * 100
-            st.metric(
-                "Success Rate", 
-                f"{success_rate:.1f}%"
+            # Color code: green >=90, orange >=50, else red
+            if success_rate >= 90:
+                color = "#2ecc40"  # green
+            elif success_rate >= 50:
+                color = "#ffae42"  # orange
+            else:
+                color = "#e74c3c"  # red
+            st.markdown(
+                f"<div style='background-color:{color};padding:10px;border-radius:8px;text-align:center;'>"
+                f"<span style='color:white;font-size:24px;font-weight:bold;'>{success_rate:.1f}%</span><br>"
+                f"<span style='color:white;'>Success Rate</span></div>",
+                unsafe_allow_html=True
             )
         
         # Create tabs for different views
         tab1, tab2, tab3, tab4 = st.tabs(["📊 Results Summary", "📈 Distributions", "🎯 Percentiles", "📉 Portfolio Paths"])
         
         with tab1:
-            st.subheader(f"Simulation Results Summary - at the end of {num_years} years")
+            st.subheader(f"Simulation Results Summary (at the end of {num_years} years)")
             
             col1, col2 = st.columns(2)
             
@@ -230,7 +286,7 @@ if st.sidebar.button("🚀 Run Simulation", type="primary"):
                 st.write(f"95th Percentile: ${p95_real:,.0f}")
         
         with tab2:
-            st.subheader("Portfolio Value Distributions")
+            st.subheader(f"Portfolio Value Distributions (at the end of {num_years} years)")
             
             # Create histogram
             fig = make_subplots(
@@ -264,13 +320,12 @@ if st.sidebar.button("🚀 Run Simulation", type="primary"):
             fig.update_layout(
                 height=500,
                 showlegend=False,
-                title_text=f"Distribution of Portfolio Values After {num_years} Years"
             )
             
             st.plotly_chart(fig, use_container_width=True)
         
         with tab3:
-            st.subheader("Percentile Analysis")
+            st.subheader(f"Percentile Analysis (at the end of {num_years} years)")
             
             # Create percentile data
             percentiles = list(range(5, 100, 5))
@@ -315,7 +370,7 @@ if st.sidebar.button("🚀 Run Simulation", type="primary"):
             st.plotly_chart(fig, use_container_width=True)
         
         with tab4:
-            st.subheader("Sample Portfolio Paths")
+            st.subheader(f"Portfolio Evolution Over {num_years} Years (Sample Paths)")
             
             # Show a sample of portfolio paths
             sample_size = min(1000, num_simulations)
@@ -372,7 +427,6 @@ if st.sidebar.button("🚀 Run Simulation", type="primary"):
             ))
             
             fig.update_layout(
-                title=f"Portfolio Evolution Over {num_years} Years (Sample Paths)",
                 xaxis_title="Years from Now",
                 yaxis_title="Portfolio Value ($)",
                 height=600
