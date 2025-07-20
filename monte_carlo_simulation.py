@@ -2,7 +2,10 @@ import numpy as np
 import locale
 
 # Set the locale for your desired formatting (e.g., en_US for US locale)
-locale.setlocale(locale.LC_ALL, 'en_US')
+try:
+    locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
+except locale.Error:
+    locale.setlocale(locale.LC_ALL, '')
 
 def monte_carlo_simulation(
     initial_investment, 
