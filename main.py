@@ -30,175 +30,192 @@ st.set_page_config(
 
 st.title("🏦 Retirement Portfolio Simulation")
 st.markdown("Analyze your retirement portfolio's potential outcomes using Monte Carlo simulation")
-
-# Sidebar for input parameters
-st.sidebar.header("📊 Simulation Parameters")
-
-# Investment parameters
-st.sidebar.subheader("⁉️ Input Definition")
-input_definition = st.sidebar.selectbox(
-    'Would you like to input the current investment OR the monthly withdrawal?',
-    ('Monthly Withdrawal', 'Current Investment')
+st.markdown(
+    """
+    <style>
+    [data-testid="stSliderTickBar"] {
+        opacity: 1 !important;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
 )
 
+# Top bar for input parameters
+with st.container(border=True):
+    st.subheader("📊 Parameters")
 
-# Dynamic input order based on input_definition
-if input_definition == "Current Investment":
-    st.sidebar.subheader("💼 Investment Settings")
-    initial_investment = st.sidebar.number_input(
-        "Current Investment ($)", 
-        min_value=10000, 
-        max_value=10000000, 
-        value=2200000, 
-        step=50000,
-        format="%d"
+    input_definition = st.selectbox(
+        "Which amount do you want to set?",
+        ("Monthly withdrawal amount at retirement", "Investment amount at retirement"),
     )
 
-    returns_mean = st.sidebar.slider(
-        "Expected Annual Return (%)", 
-        min_value=0.0, 
-        max_value=20.0, 
-        value=6.0, 
-        step=0.1
-    ) / 100
+    col_primary, col_secondary, col_tertiary, col_inflation = st.columns(4)
 
-    returns_std = st.sidebar.slider(
-        "Return Volatility (Standard Deviation %)", 
-        min_value=0.1, 
-        max_value=10.0, 
-        value=1.0, 
-        step=0.1
-    ) / 100
+    # Dynamic input order based on input_definition
+    if input_definition == "Investment amount at retirement":
+        with col_primary:
+            st.markdown("**💼 Investment**")
+            initial_investment = st.number_input(
+                "Investment amount at retirement ($)",
+                min_value=10000,
+                max_value=1000000000,
+                value=3000000,
+                step=50000,
+                format="%d",
+            )
 
-    # Time parameters
-    st.sidebar.subheader("⏰ Time Settings")
-    age = st.sidebar.number_input(
-        "Current Age", 
-        min_value=18, 
-        max_value=90, 
-        value=45, 
-        step=1
-    )
+            returns_mean = st.slider(
+                "Expected Annual Return (%)",
+                min_value=0.0,
+                max_value=20.0,
+                value=6.0,
+                step=0.1,
+                format="%0.1f%%",
+            ) / 100
 
-    retirement_age = st.sidebar.number_input(
-        "Life Expectancy Age", 
-        min_value=age, 
-        max_value=150, 
-        value=100, 
-        step=1
-    )
+            returns_std = st.slider(
+                "Return Volatility (Standard Deviation %)",
+                min_value=0.1,
+                max_value=10.0,
+                value=1.0,
+                step=0.1,
+                format="%0.1f%%",
+            ) / 100
 
-    num_years = retirement_age - age
+        with col_secondary:
+            st.markdown("**⏰ Time**")
+            age = st.number_input(
+                "Age at retirement",
+                min_value=18,
+                max_value=90,
+                value=45,
+                step=1,
+            )
 
-    # Withdrawal parameters
-    st.sidebar.subheader("💸 Withdrawal Settings")
-    withdrawal_rate = st.sidebar.slider(
-        "Initial Withdrawal Rate (%)", 
-        min_value=1.0, 
-        max_value=10.0, 
-        value=2.7, 
-        step=0.1
-    ) / 100
+            retirement_age = st.number_input(
+                "Life Expectancy Age",
+                min_value=age,
+                max_value=150,
+                value=100,
+                step=1,
+            )
 
-    withdrawal_value = initial_investment * withdrawal_rate
+            num_years = retirement_age - age
 
-    # Show Monthly Withdrawal value as an informative text box (no decimals)
-    monthly_withdrawal = int(withdrawal_value // 12)
-    st.sidebar.info(f"Monthly Withdrawal: ${monthly_withdrawal:,}")
+        with col_tertiary:
+            st.markdown("**💸 Withdrawal**")
+            withdrawal_rate = st.slider(
+                "Annual Withdrawal Rate (%)",
+                min_value=1.0,
+                max_value=10.0,
+                value=2.7,
+                step=0.1,
+                format="%0.1f%%",
+            ) / 100
 
-elif input_definition == "Monthly Withdrawal":
-    st.sidebar.subheader("💸 Withdrawal Settings")
-    monthly_withdrawal = st.sidebar.number_input(
-        "Monthly Withdrawal ($)",
-        min_value=1000,
-        max_value=100000,
-        value=5000,
-        step=500,
-        format="%d"
-    )
-    withdrawal_value = monthly_withdrawal * 12
+            withdrawal_value = initial_investment * withdrawal_rate
 
-    withdrawal_rate = st.sidebar.slider(
-        "Initial Withdrawal Rate (%)", 
-        min_value=1.0, 
-        max_value=10.0, 
-        value=2.7, 
-        step=0.1
-    ) / 100
+    elif input_definition == "Monthly withdrawal amount at retirement":
+        with col_primary:
+            st.markdown("**💸 Withdrawal**")
+            monthly_withdrawal = st.number_input(
+                "Monthly withdrawal amount at retirement ($)",
+                min_value=1000,
+                max_value=100000,
+                value=5000,
+                step=500,
+                format="%d",
+            )
+            withdrawal_value = monthly_withdrawal * 12
 
-    # Show Current Investment as an informative text box (no decimals)
-    initial_investment = int(withdrawal_value / withdrawal_rate) if withdrawal_rate > 0 else 0
-    st.sidebar.info(f"Current Investment: ${initial_investment:,}")
+            withdrawal_rate = st.slider(
+                "Annual Withdrawal Rate (%)",
+                min_value=1.0,
+                max_value=10.0,
+                value=2.7,
+                step=0.1,
+                format="%0.1f%%",
+            ) / 100
 
-    # Investment settings
-    st.sidebar.subheader("💼 Investment Settings")
-    returns_mean = st.sidebar.slider(
-        "Expected Annual Return (%)", 
-        min_value=0.0, 
-        max_value=20.0, 
-        value=6.0, 
-        step=0.1
-    ) / 100
+            initial_investment = int(withdrawal_value / withdrawal_rate) if withdrawal_rate > 0 else 0
 
-    returns_std = st.sidebar.slider(
-        "Return Volatility (Standard Deviation %)", 
-        min_value=0.1, 
-        max_value=10.0, 
-        value=1.0, 
-        step=0.1
-    ) / 100
+        with col_secondary:
+            st.markdown("**💼 Investment**")
+            returns_mean = st.slider(
+                "Expected Annual Return (%)",
+                min_value=0.0,
+                max_value=20.0,
+                value=6.0,
+                step=0.1,
+                format="%0.1f%%",
+            ) / 100
 
-    # Time parameters
-    st.sidebar.subheader("⏰ Time Settings")
-    age = st.sidebar.number_input(
-        "Current Age", 
-        min_value=18, 
-        max_value=90, 
-        value=45, 
-        step=1
-    )
+            returns_std = st.slider(
+                "Return Volatility (Standard Deviation %)",
+                min_value=0.1,
+                max_value=10.0,
+                value=1.0,
+                step=0.1,
+                format="%0.1f%%",
+            ) / 100
 
-    retirement_age = st.sidebar.number_input(
-        "Life Expectancy Age", 
-        min_value=age, 
-        max_value=150, 
-        value=100, 
-        step=1
-    )
+        with col_tertiary:
+            st.markdown("**⏰ Time**")
+            age = st.number_input(
+                "Age at retirement",
+                min_value=18,
+                max_value=90,
+                value=45,
+                step=1,
+            )
 
-    num_years = retirement_age - age
+            retirement_age = st.number_input(
+                "Life Expectancy Age",
+                min_value=age,
+                max_value=150,
+                value=100,
+                step=1,
+            )
 
-# Inflation parameters
-st.sidebar.subheader("📈 Inflation Settings")
-inflation_mean = st.sidebar.slider(
-    "Expected Annual Inflation (%)", 
-    min_value=0.0, 
-    max_value=20.0, 
-    value=3.0, 
-    step=0.1
-) / 100
+            num_years = retirement_age - age
 
-inflation_std = st.sidebar.slider(
-    "Inflation Volatility (%)", 
-    min_value=0.1, 
-    max_value=10.0, 
-    value=3.0, 
-    step=0.1
-) / 100
+    with col_inflation:
+        st.markdown("**📈 Inflation**")
+        inflation_mean = st.slider(
+            "Expected Annual Inflation (%)",
+            min_value=0.0,
+            max_value=20.0,
+            value=3.0,
+            step=0.1,
+            format="%0.1f%%",
+        ) / 100
 
-# Simulation parameters
-st.sidebar.subheader("🎲 Simulation Settings")
-simulation_options = [10000, 50000, 100000, 500000, 1000000]
-simulation_labels = [f"{v:,}" for v in simulation_options]
-selected_label = st.sidebar.selectbox(
-    "Number of Simulations",
-    simulation_labels,
-    index=2
-)
-num_simulations = simulation_options[simulation_labels.index(selected_label)]
+        inflation_std = st.slider(
+            "Inflation Volatility (%)",
+            min_value=0.1,
+            max_value=10.0,
+            value=3.0,
+            step=0.1,
+            format="%0.1f%%",
+        ) / 100
+
+    st.markdown("**🎲 Simulation**")
+    sim_col, button_col = st.columns([3, 1], vertical_alignment="bottom")
+    simulation_options = [10000, 50000, 100000, 500000, 1000000]
+    simulation_labels = [f"{v:,}" for v in simulation_options]
+    with sim_col:
+        selected_label = st.selectbox(
+            "Number of Simulations",
+            simulation_labels,
+            index=2,
+        )
+    num_simulations = simulation_options[simulation_labels.index(selected_label)]
+    with button_col:
+        run_simulation = st.button("🚀 Run Simulation", type="primary", use_container_width=True)
 
 # Main content
-if st.sidebar.button("🚀 Run Simulation", type="primary"):
+if run_simulation:
     with st.spinner("Running Monte Carlo simulation..."):
         # Run the simulation
         simulated_portfolios, cumulative_inflation_factors = monte_carlo_simulation(
@@ -221,7 +238,7 @@ if st.sidebar.button("🚀 Run Simulation", type="primary"):
         
         with col1:
             st.metric(
-                "Current Investment", 
+                "Investment amount at retirement", 
                 f"${initial_investment:,.0f}"
             )
 
@@ -233,7 +250,7 @@ if st.sidebar.button("🚀 Run Simulation", type="primary"):
 
         with col2_monthly:
             st.metric(
-                "Initial Monthly Withdrawal", 
+                "Initial Monthly withdrawal", 
                 f"${(withdrawal_value/12):,.0f}"
             )
         
@@ -260,10 +277,10 @@ if st.sidebar.button("🚀 Run Simulation", type="primary"):
             )
         
         # Create tabs for different views
-        tab1, tab2, tab3, tab4 = st.tabs(["📊 Results Summary", "📈 Distributions", "🎯 Percentiles", "📉 Portfolio Paths"])
+        tab1, tab2, tab3, tab4 = st.tabs(["📊 Summary", "📈 Distributions", "🎯 Percentiles", "📉 Portfolio Paths"])
         
         with tab1:
-            st.subheader(f"Simulation Results Summary (at the end of {num_years} years)")
+            st.subheader(f"Simulation Summary (at the end of {num_years} years)")
             
             col1, col2 = st.columns(2)
             
@@ -377,25 +394,25 @@ if st.sidebar.button("🚀 Run Simulation", type="primary"):
             sample_indices = np.random.choice(num_simulations, sample_size, replace=False)
             sample_portfolios = simulated_portfolios[:, sample_indices]
             
-            years = list(range(num_years))
+            ages = list(range(age, retirement_age))
             
             fig = go.Figure()
             
             # Add sample paths
             for i in range(min(100, sample_size)):  # Show max 100 paths for performance
                 fig.add_trace(go.Scatter(
-                    x=years,
+                    x=ages,
                     y=sample_portfolios[:, i],
                     mode='lines',
                     line=dict(width=0.5, color='lightblue'),
                     showlegend=False,
-                    hovertemplate=f'Year: %{{x}}<br>Value: $%{{y:,.0f}}<extra></extra>'
+                    hovertemplate='Age: %{x}<br>Value: $%{y:,.0f}<extra></extra>'
                 ))
             
             # Add median path
             median_path = np.median(sample_portfolios, axis=1)
             fig.add_trace(go.Scatter(
-                x=years,
+                x=ages,
                 y=median_path,
                 mode='lines',
                 line=dict(width=3, color='red'),
@@ -407,7 +424,7 @@ if st.sidebar.button("🚀 Run Simulation", type="primary"):
             p90_path = np.percentile(sample_portfolios, 90, axis=1)
             
             fig.add_trace(go.Scatter(
-                x=years,
+                x=ages,
                 y=p90_path,
                 mode='lines',
                 line=dict(width=0),
@@ -416,7 +433,7 @@ if st.sidebar.button("🚀 Run Simulation", type="primary"):
             ))
             
             fig.add_trace(go.Scatter(
-                x=years,
+                x=ages,
                 y=p10_path,
                 mode='lines',
                 line=dict(width=0),
@@ -427,7 +444,7 @@ if st.sidebar.button("🚀 Run Simulation", type="primary"):
             ))
             
             fig.update_layout(
-                xaxis_title="Years from Now",
+                xaxis_title="Age",
                 yaxis_title="Portfolio Value ($)",
                 height=600
             )
@@ -435,7 +452,7 @@ if st.sidebar.button("🚀 Run Simulation", type="primary"):
             st.plotly_chart(fig, use_container_width=True)
 
 else:
-    st.info("👈 Configure your parameters in the sidebar and click 'Run Simulation' to see results!")
+    st.info("Configure your parameters above and click 'Run Simulation' to see results!")
 
 # Footer
 st.markdown("---")
